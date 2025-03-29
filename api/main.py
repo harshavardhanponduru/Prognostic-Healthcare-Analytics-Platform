@@ -1,114 +1,94 @@
-import sqlite3
-
-import joblib
-import numpy as np
 from flask import Flask, request, jsonify, render_template
-from vitals.database import init_db, save_vitals, get_latest_vitals, DB_PATH
 from flask_cors import CORS
+from api.vitals.database import init_db, save_vitals, get_latest_vitals
+import sqlite3
+from vitals.database import DB_PATH
+import numpy as np
+import joblib
+import os
 
-app = Flask(__name__, template_folder='../api/templates')
+app = Flask(__name__, template_folder="templates")
+CORS(app)
 
-# --- Load trained model at startup ---
-try:
-    model_path = "/Users/harsha/Predictive-Healing-Pavilion/api/risk_model.pkl"
-    model = joblib.load(model_path)
-    print("✅ Model loaded successfully!")
-except FileNotFoundError:
-    print(f"❌ Error: {model_path} not found. Please train and save the model first.")
-    model = None
+# --- Load trained model if available ---
+model_path = os.path.join(os.path.dirname(__file__), "models/risk_model.pkl")
+model = None
+if os.path.exists(model_path):
+    try:
+        model = joblib.load(model_path)
+        print("✅ Model loaded successfully!")
+    except Exception as e:
+        print(f"❌ Error loading model: {e}")
 
-CORS(app)  # Allow all origins (for testing)
 
-# --- Basic rule-based check for vitals ---
+# --- Health rule-based check ---
 def check_vitals(hr, bp):
-    alert = "All Good"
     if hr > 120:
-        alert = "High Seeker Speed! Possible stress."
+        return "High Seeker Speed! Possible stress."
     if bp > 140:
-        alert = "Bludger Hit! Hypertension risk."
-    elif bp < 90:
-        alert = "Low Blood Pressure! Risk of fainting."
-    return alert
+        return "Bludger Hit! Hypertension risk."
+    if bp < 90:
+        return "Low Blood Pressure! Risk of fainting."
+    return "All Good"
 
-# --- Mock API route to receive IoT data ---
+
+# --- API to receive vitals data ---
 @app.route('/api/vitals', methods=['POST'])
 def receive_vitals():
-    try:
-        data = request.json
-        heart_rate = data.get('heart_rate')
-        blood_pressure = data.get('blood_pressure')
+    data = request.json
+    heart_rate = data.get('heart_rate')
+    blood_pressure = data.get('blood_pressure')
 
-        if heart_rate is None or blood_pressure is None:
-            return jsonify({"error": "Missing heart_rate or blood_pressure"}), 400
+    if heart_rate is None or blood_pressure is None:
+        return jsonify({"error": "Missing heart_rate or blood_pressure"}), 400
 
-        # Analyze vitals using basic rules
-        alert = check_vitals(heart_rate, blood_pressure)
+    alert = check_vitals(heart_rate, blood_pressure)
+    save_vitals(heart_rate, blood_pressure, alert)
 
-        # Save data to database
-        save_vitals(heart_rate, blood_pressure, alert)
+    return jsonify({
+        "status": "Data received",
+        "heart_rate": heart_rate,
+        "blood_pressure": blood_pressure,
+        "alert": alert
+    }), 200
 
-        # Prepare response
-        response = {
-            "status": "Data received",
-            "heart_rate": heart_rate,
-            "blood_pressure": blood_pressure,
-            "alert": alert
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
-# --- API route to predict health risk ---
+# --- API to get latest vitals ---
+@app.route('/api/vitals/latest', methods=['GET'])
+def latest_vitals():
+    vitals = get_latest_vitals()
+    return jsonify(vitals), 200
+
+
+# --- API to predict health risk ---
 @app.route('/api/predict', methods=['POST'])
 def predict_risk():
     if model is None:
-        return jsonify({"error": "Model not loaded. Check the path or train the model."}), 500
+        return jsonify({"error": "Model not loaded."}), 500
 
-    try:
-        data = request.json
-        heart_rate = data.get('heart_rate')
-        blood_pressure = data.get('blood_pressure')
+    data = request.json
+    heart_rate = data.get('heart_rate')
+    blood_pressure = data.get('blood_pressure')
 
-        # Validate input values
-        if heart_rate is None or blood_pressure is None:
-            return jsonify({"error": "Missing heart_rate or blood_pressure"}), 400
+    if heart_rate is None or blood_pressure is None:
+        return jsonify({"error": "Missing heart_rate or blood_pressure"}), 400
 
-        # Prepare data for prediction
-        input_data = np.array([[heart_rate, blood_pressure]])
-        prediction = model.predict(input_data)[0]
+    input_data = np.array([[heart_rate, blood_pressure]])
+    prediction = model.predict(input_data)[0]
+    risk_status = "Bludger Danger! Monitor closely." if prediction == 1 else "Seeker Speed Normal. No immediate risk."
 
-        # Map prediction to Quidditch-like status
-        if prediction == 1:
-            risk_status = "Bludger Danger! Monitor closely."
-        else:
-            risk_status = "Seeker Speed Normal. No immediate risk."
+    return jsonify({
+        "heart_rate": heart_rate,
+        "blood_pressure": blood_pressure,
+        "prediction": int(prediction),
+        "status": risk_status
+    }), 200
 
-        response = {
-            "heart_rate": heart_rate,
-            "blood_pressure": blood_pressure,
-            "prediction": int(prediction),
-            "status": risk_status
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# --- API route to get the latest vitals ---
-@app.route('/api/vitals/latest', methods=['GET'])
-def latest_vitals():
-    try:
-        vitals = get_latest_vitals()
-        return jsonify(vitals), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-# --- API route to get historical vitals data ---
 @app.route('/api/vitals/history', methods=['GET'])
 def vitals_history():
     try:
         conn = sqlite3.connect(DB_PATH)
         cursor = conn.cursor()
-
         cursor.execute('''
             SELECT heart_rate, blood_pressure, alert, timestamp
             FROM vitals
@@ -131,12 +111,14 @@ def vitals_history():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-# --- Route to render the dashboard ---
+
+# --- Route to render dashboard ---
 @app.route('/')
 def dashboard():
     return render_template('dashboard.html')
 
-# Initialize the database
+
+# --- Initialize the database ---
 init_db()
 
 # --- Run Flask server ---
