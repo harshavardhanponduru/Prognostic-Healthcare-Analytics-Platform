@@ -6,7 +6,6 @@ from flask import Flask, request, jsonify, render_template
 from vitals.database import init_db, save_vitals, get_latest_vitals, DB_PATH
 from flask_cors import CORS
 
-
 app = Flask(__name__, template_folder='../api/templates')
 
 # --- Load trained model at startup ---
@@ -19,6 +18,17 @@ except FileNotFoundError:
     model = None
 
 CORS(app)  # Allow all origins (for testing)
+
+# --- Basic rule-based check for vitals ---
+def check_vitals(hr, bp):
+    alert = "All Good"
+    if hr > 120:
+        alert = "High Seeker Speed! Possible stress."
+    if bp > 140:
+        alert = "Bludger Hit! Hypertension risk."
+    elif bp < 90:
+        alert = "Low Blood Pressure! Risk of fainting."
+    return alert
 
 # --- Mock API route to receive IoT data ---
 @app.route('/api/vitals', methods=['POST'])
@@ -34,6 +44,9 @@ def receive_vitals():
         # Analyze vitals using basic rules
         alert = check_vitals(heart_rate, blood_pressure)
 
+        # Save data to database
+        save_vitals(heart_rate, blood_pressure, alert)
+
         # Prepare response
         response = {
             "status": "Data received",
@@ -44,19 +57,6 @@ def receive_vitals():
         return jsonify(response), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-
-# --- Basic rule-based check for vitals ---
-def check_vitals(hr, bp):
-    alert = "All Good"
-    if hr > 120:
-        alert = "High Seeker Speed! Possible stress."
-    if bp > 140:
-        alert = "Bludger Hit! Hypertension risk."
-    elif bp < 90:
-        alert = "Low Blood Pressure! Risk of fainting."
-    return alert
-
 
 # --- API route to predict health risk ---
 @app.route('/api/predict', methods=['POST'])
@@ -93,74 +93,14 @@ def predict_risk():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-
-# --- API to serve latest vitals ---
-@app.route('/api/vitals/latest', methods=['GET'])
-def get_latest_vitals():
-    try:
-        # Mock latest data - Replace with real data if needed
-        latest_data = {
-            "heart_rate": np.random.randint(60, 150),
-            "blood_pressure": np.random.randint(90, 160),
-            "alert": check_vitals(np.random.randint(60, 150), np.random.randint(90, 160))
-        }
-        return jsonify(latest_data), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# --- Route to render the dashboard ---
-@app.route('/')
-def dashboard():
-    return render_template('dashboard.html')
-
-
-# --- Run Flask server ---
-if __name__ == '__main__':
-    app.run(debug=True, port=5000)
-
-# Initialize the database
-init_db()
-
-
-# --- Mock API route to receive IoT data ---
-@app.route('/api/vitals', methods=['POST'])
-def receive_vitals():
-    try:
-        data = request.json
-        heart_rate = data.get('heart_rate')
-        blood_pressure = data.get('blood_pressure')
-
-        if heart_rate is None or blood_pressure is None:
-            return jsonify({"error": "Missing heart_rate or blood_pressure"}), 400
-
-        # Analyze vitals using basic rules
-        alert = check_vitals(heart_rate, blood_pressure)
-
-        # Save data to database
-        save_vitals(heart_rate, blood_pressure, alert)
-
-        # Prepare response
-        response = {
-            "status": "Data received",
-            "heart_rate": heart_rate,
-            "blood_pressure": blood_pressure,
-            "alert": alert
-        }
-        return jsonify(response), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-
-# Initialize the database
-init_db()
-# --- Mock API route to receive IoT data ---
 # --- API route to get the latest vitals ---
 @app.route('/api/vitals/latest', methods=['GET'])
 def latest_vitals():
-    vitals = get_latest_vitals()
-    return jsonify(vitals), 200
-
+    try:
+        vitals = get_latest_vitals()
+        return jsonify(vitals), 200
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 # --- API route to get historical vitals data ---
 @app.route('/api/vitals/history', methods=['GET'])
@@ -190,3 +130,15 @@ def vitals_history():
         return jsonify(vitals_history), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# --- Route to render the dashboard ---
+@app.route('/')
+def dashboard():
+    return render_template('dashboard.html')
+
+# Initialize the database
+init_db()
+
+# --- Run Flask server ---
+if __name__ == '__main__':
+    app.run(debug=True, port=5000)
