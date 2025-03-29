@@ -1,5 +1,6 @@
 from flask import Flask, request, jsonify, render_template
 from flask_cors import CORS
+from api.services.sms_service import send_alert_sms
 from api.vitals.database import init_db, save_vitals, get_latest_vitals
 import sqlite3
 from vitals.database import DB_PATH
@@ -32,6 +33,7 @@ def check_vitals(hr, bp):
     return "All Good"
 
 
+
 # --- API to receive vitals data ---
 @app.route('/api/vitals', methods=['POST'])
 def receive_vitals():
@@ -44,6 +46,10 @@ def receive_vitals():
 
     alert = check_vitals(heart_rate, blood_pressure)
     save_vitals(heart_rate, blood_pressure, alert)
+
+    # Send SMS alert if vitals are abnormal
+    if alert != "All Good":
+        send_alert_sms("+919556263453", f"Alert! {alert} - HR: {heart_rate}, BP: {blood_pressure}")
 
     return jsonify({
         "status": "Data received",

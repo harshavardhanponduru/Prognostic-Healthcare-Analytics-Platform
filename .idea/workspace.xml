@@ -5,19 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="177fbe46-37ec-41ad-8e4a-ee2685dbc813" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/.idea/encodings.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/encodings.xml" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/api/services/sms_service.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/google_fit/google_fit_auth.py" beforeDir="false" />
       <change beforePath="$PROJECT_DIR$/api/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/models.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/models/models.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/risk_model.pkl" beforeDir="false" afterPath="$PROJECT_DIR$/api/models/risk_model.pkl" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/static/sample.jpg" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/static/style.css" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/templates/dashboard.html" beforeDir="false" afterPath="$PROJECT_DIR$/api/templates/dashboard.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/vitals/database.py" beforeDir="false" afterPath="$PROJECT_DIR$/api/vitals/database.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/vitals/routes.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/vitals/twilio_integration.py" beforeDir="false" />
-      <change beforePath="$PROJECT_DIR$/api/vitals/vitals.db" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/mock_data/generate_mock.py" beforeDir="false" afterPath="$PROJECT_DIR$/mock/mock_data.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/mock_data/mock_vitals.csv" beforeDir="false" afterPath="$PROJECT_DIR$/mock/mock_vitals.csv" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -29,6 +21,17 @@
       <list>
         <option value="Python Script" />
       </list>
+    </option>
+  </component>
+  <component name="FlaskConsoleOptions" custom-start-script="import sys; print('Python %s on %s' % (sys.version, sys.platform)); sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo, NoAppException&#10;for module in [&quot;main.py&quot;, &quot;wsgi.py&quot;, &quot;app.py&quot;]:&#10;    try: locals().update(ScriptInfo(app_import_path=module, create_app=None).load_app().make_shell_context()); print(&quot;\nFlask App: %s&quot; % app.import_name); break&#10;    except NoAppException: pass">
+    <envs>
+      <env key="FLASK_APP" value="app" />
+    </envs>
+    <option name="myCustomStartScript" value="import sys; print('Python %s on %s' % (sys.version, sys.platform)); sys.path.extend([WORKING_DIR_AND_PYTHON_PATHS])&#10;from flask.cli import ScriptInfo, NoAppException&#10;for module in [&quot;main.py&quot;, &quot;wsgi.py&quot;, &quot;app.py&quot;]:&#10;    try: locals().update(ScriptInfo(app_import_path=module, create_app=None).load_app().make_shell_context()); print(&quot;\nFlask App: %s&quot; % app.import_name); break&#10;    except NoAppException: pass" />
+    <option name="myEnvs">
+      <map>
+        <entry key="FLASK_APP" value="app" />
+      </map>
     </option>
   </component>
   <component name="Git.Settings">
@@ -208,7 +211,7 @@
       <option name="presentableId" value="Default" />
       <updated>1743186283770</updated>
       <workItem from="1743186284900" duration="501000" />
-      <workItem from="1743186865843" duration="31674000" />
+      <workItem from="1743186865843" duration="33543000" />
     </task>
     <servers />
   </component>
@@ -219,7 +222,7 @@
     <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$generate_mock.coverage" NAME="generate_mock Coverage Results" MODIFIED="1743234934269" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/mock_data" />
     <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$models.coverage" NAME="models Coverage Results" MODIFIED="1743270444562" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api" />
     <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$database.coverage" NAME="database Coverage Results" MODIFIED="1743233079178" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api/vitals" />
-    <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$main.coverage" NAME="main Coverage Results" MODIFIED="1743270459768" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api" />
+    <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$main.coverage" NAME="main Coverage Results" MODIFIED="1743277919080" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api" />
     <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$request.coverage" NAME="request Coverage Results" MODIFIED="1743230025418" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api/vitals" />
     <SUITE FILE_PATH="coverage/Predictive_Healing_Pavilion$google_fit_api.coverage" NAME="google_fit_api Coverage Results" MODIFIED="1743246701456" SOURCE_PROVIDER="com.intellij.coverage.DefaultCoverageFileProvider" RUNNER="coverage.py" COVERAGE_BY_TEST_ENABLED="false" COVERAGE_TRACING_ENABLED="false" WORKING_DIRECTORY="$PROJECT_DIR$/api/google_fit" />
   </component>
