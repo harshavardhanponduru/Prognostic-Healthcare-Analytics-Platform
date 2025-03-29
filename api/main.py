@@ -4,6 +4,8 @@ import joblib
 import numpy as np
 from flask import Flask, request, jsonify, render_template
 from vitals.database import init_db, save_vitals, get_latest_vitals, DB_PATH
+from flask_cors import CORS
+
 
 app = Flask(__name__, template_folder='../api/templates')
 
@@ -16,6 +18,7 @@ except FileNotFoundError:
     print(f"❌ Error: {model_path} not found. Please train and save the model first.")
     model = None
 
+CORS(app)  # Allow all origins (for testing)
 
 # --- Mock API route to receive IoT data ---
 @app.route('/api/vitals', methods=['POST'])
