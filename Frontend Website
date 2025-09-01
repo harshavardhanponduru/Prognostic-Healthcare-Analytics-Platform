@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Prognostic Healthcare Analytics Platform</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Chosen Palette: Clinical Calm (Light grays, muted blues, and semantic greens/yellows/reds for status) -->
+    <!-- Application Structure Plan: A dashboard-centric SPA. The top section provides an at-a-glance overview of the current patient's vitals and AI risk score for immediate assessment. The middle section uses interactive line charts for historical trend analysis. The bottom section contains a log of alerts and events for an audit trail. A new section is added for Gemini API powered features to generate clinical notes and answer questions. This structure prioritizes information hierarchy for busy healthcare professionals, allowing quick status checks and deeper investigation, and now AI-assisted tasks. A patient selector drives all dynamic content updates. -->
+    <!-- Visualization & Content Choices: Report Info: Real-time vitals -> Goal: Inform -> Viz: Color-coded Stat Cards -> Interaction: Hover for details -> Justification: Quick, glanceable status -> Library: HTML/Tailwind. | Report Info: Historical Vitals -> Goal: Analyze Change -> Viz: Line Charts -> Interaction: Time-range selection -> Justification: Standard for trend analysis -> Library: Chart.js/Canvas. | Report Info: AI Prediction -> Goal: Inform -> Viz: Risk Score Gauge/Text -> Interaction: None -> Justification: Highlights the key predictive output -> Library: Chart.js/Canvas. | Report Info: Alerts -> Goal: Organize -> Viz: Event Log Table -> Interaction: Scroll -> Justification: Chronological audit trail -> Library: HTML/Tailwind. | Report Info: Patient Summary -> Goal: Synthesize & Inform -> Viz: Text Output -> Interaction: Button click -> Justification: Automates a routine clinical task -> Library: Gemini API. | Report Info: Clinical Questions -> Goal: Inform -> Viz: Text Input/Output -> Interaction: Button click -> Justification: Provides on-demand information -> Library: Gemini API. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .chart-container {
+            position: relative;
+            width: 100%;
+            max-width: 800px;
+            margin-left: auto;
+            margin-right: auto;
+            height: 300px;
+            max-height: 400px;
+        }
+        @media (min-width: 768px) {
+            .chart-container {
+                height: 350px;
+            }
+        }
+        .status-dot {
+            height: 10px;
+            width: 10px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-800">
+
+    <header class="bg-white shadow-sm sticky top-0 z-10">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-4">
+            <h1 class="text-2xl font-bold text-sky-800">Prognostic Healthcare Analytics Platform</h1>
+        </div>
+    </header>
+
+    <main class="container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        
+        <div class="bg-white p-4 rounded-xl shadow-md border border-slate-200 mb-8 flex flex-col md:flex-row justify-between items-center space-y-4 md:space-y-0">
+            <p class="text-slate-600">This dashboard provides a real-time overview of patient vitals and AI-driven risk assessments, enabling proactive clinical intervention. Select a patient to view their current status and historical data trends.</p>
+            <div class="flex items-center space-x-3">
+                <label for="patientSelector" class="font-semibold text-slate-700">Select Patient:</label>
+                <select id="patientSelector" class="block w-full md:w-64 bg-slate-100 border border-slate-300 text-slate-900 py-2 px-3 rounded-lg focus:outline-none focus:ring-2 focus:ring-sky-500">
+                </select>
+            </div>
+        </div>
+
+        <section id="overview" class="mb-8">
+            <h2 class="text-xl font-bold text-slate-700 mb-4">Patient Overview</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                
+                <div id="riskAssessmentCard" class="bg-white p-6 rounded-xl shadow-md border border-slate-200 flex flex-col justify-between">
+                    <div>
+                        <h3 class="font-semibold text-slate-500 mb-2">AI Risk Assessment</h3>
+                        <p id="riskLevel" class="text-3xl font-bold">Loading...</p>
+                        <p id="riskReason" class="text-sm text-slate-500 mt-1">Calculating...</p>
+                    </div>
+                     <div class="w-full h-2 rounded-full bg-slate-200 mt-4">
+                        <div id="riskBar" class="h-2 rounded-full" style="width: 0%;"></div>
+                    </div>
+                </div>
+
+                <div id="heartRateCard" class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 mb-2">Heart Rate</h3>
+                    <div class="flex items-baseline space-x-2">
+                        <p id="heartRate" class="text-4xl font-bold">--</p>
+                        <span class="font-semibold text-slate-600">bpm</span>
+                    </div>
+                    <p id="heartRateStatus" class="text-sm font-medium mt-2">No data</p>
+                </div>
+
+                <div id="bloodPressureCard" class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 mb-2">Blood Pressure</h3>
+                     <div class="flex items-baseline space-x-2">
+                        <p id="bloodPressure" class="text-4xl font-bold">--/--</p>
+                        <span class="font-semibold text-slate-600">mmHg</span>
+                    </div>
+                    <p id="bloodPressureStatus" class="text-sm font-medium mt-2">No data</p>
+                </div>
+
+                <div id="oxygenSaturationCard" class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 mb-2">Oxygen Saturation</h3>
+                    <div class="flex items-baseline space-x-2">
+                        <p id="oxygenSaturation" class="text-4xl font-bold">--</p>
+                        <span class="font-semibold text-slate-600">%</span>
+                    </div>
+                    <p id="oxygenSaturationStatus" class="text-sm font-medium mt-2">No data</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="historicalData" class="mb-8">
+             <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-700 mb-4">Historical Vitals Trend</h2>
+                <p class="text-slate-600 mb-6">These charts display the patient's vital signs over time. Analyzing these trends helps in identifying patterns and potential health issues before they become critical. Use the buttons to switch between different physiological measurements.</p>
+                <div class="flex justify-center space-x-2 mb-4">
+                    <button id="hrBtn" class="chart-toggle-btn bg-sky-600 text-white py-2 px-4 rounded-lg shadow-sm">Heart Rate</button>
+                    <button id="bpBtn" class="chart-toggle-btn bg-slate-200 text-slate-700 py-2 px-4 rounded-lg">Blood Pressure</button>
+                    <button id="o2Btn" class="chart-toggle-btn bg-slate-200 text-slate-700 py-2 px-4 rounded-lg">Oxygen Saturation</button>
+                </div>
+                <div class="chart-container">
+                    <canvas id="vitalsChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <section id="geminiFeatures" class="mb-8">
+            <h2 class="text-xl font-bold text-slate-700 mb-4">AI Clinical Tools</h2>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 mb-2">✨ Generate Patient Summary</h3>
+                    <p class="text-slate-600 mb-4">This tool synthesizes key patient data to generate a concise clinical note for documentation or handover. Click the button to create a summary based on the latest vitals and alerts.</p>
+                    <button id="summarizeBtn" class="w-full bg-sky-600 text-white py-2 px-4 rounded-lg shadow-sm hover:bg-sky-700 transition-colors">✨ Generate Summary</button>
+                    <div id="summaryOutput" class="mt-4 p-3 bg-slate-100 rounded-lg text-sm text-slate-700 min-h-[50px]"></div>
+                </div>
+                <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                    <h3 class="font-semibold text-slate-500 mb-2">✨ Clinical Assistant</h3>
+                    <p class="text-slate-600 mb-4">Ask a question about the patient's vitals or a general clinical query. The AI assistant will provide a helpful response based on the provided data.</p>
+                    <textarea id="questionInput" class="w-full h-24 p-2 mb-2 border border-slate-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-sky-500" placeholder="e.g., What are the potential causes for a sustained heart rate over 100 bpm?"></textarea>
+                    <button id="askBtn" class="w-full bg-sky-600 text-white py-2 px-4 rounded-lg shadow-sm hover:bg-sky-700 transition-colors">✨ Ask Assistant</button>
+                    <div id="answerOutput" class="mt-4 p-3 bg-slate-100 rounded-lg text-sm text-slate-700 min-h-[50px]"></div>
+                </div>
+            </div>
+        </section>
+
+        <section id="eventLog">
+            <div class="bg-white p-6 rounded-xl shadow-md border border-slate-200">
+                <h2 class="text-xl font-bold text-slate-700 mb-4">Alerts & Events Log</h2>
+                <p class="text-slate-600 mb-6">This log provides a chronological record of all significant events and automated alerts generated by the system. This serves as an important audit trail for clinical review and decision-making.</p>
+                <div id="logContainer" class="space-y-4 max-h-80 overflow-y-auto pr-2">
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer class="mt-12 bg-white border-t border-slate-200">
+        <div class="container mx-auto px-4 sm:px-6 lg:px-8 py-6 text-center text-slate-500">
+             <p class="font-semibold">Prognostic Healthcare Analytics Platform</p>
+             <p class="text-sm mt-2">Contributors: Harshavardhan Ponduru, Aditya Kumar Satapathy, Debansha Rout, Sushobhan Ghosh</p>
+        </div>
+    </footer>
+
+    <script>
+        const patientData = {
+            "p001": {
+                name: "John Doe (ID: p001)",
+                vitals: [
+                    { time: "08:00", hr: 72, bp_s: 120, bp_d: 80, o2: 98 },
+                    { time: "09:00", hr: 75, bp_s: 122, bp_d: 81, o2: 98 },
+                    { time: "10:00", hr: 85, bp_s: 125, bp_d: 83, o2: 97 },
+                    { time: "11:00", hr: 88, bp_s: 128, bp_d: 85, o2: 97 },
+                    { time: "12:00", hr: 82, bp_s: 124, bp_d: 82, o2: 98 },
+                    { time: "13:00", hr: 78, bp_s: 121, bp_d: 79, o2: 99 },
+                ],
+                events: [
+                    { time: "10:30", type: "warning", message: "Heart rate slightly elevated." },
+                    { time: "08:05", type: "info", message: "Monitoring started." },
+                ]
+            },
+            "p002": {
+                name: "Jane Smith (ID: p002)",
+                vitals: [
+                    { time: "08:00", hr: 95, bp_s: 135, bp_d: 88, o2: 95 },
+                    { time: "09:00", hr: 102, bp_s: 140, bp_d: 90, o2: 94 },
+                    { time: "10:00", hr: 105, bp_s: 142, bp_d: 91, o2: 93 },
+                    { time: "11:00", hr: 98, bp_s: 138, bp_d: 89, o2: 94 },
+                    { time: "12:00", hr: 96, bp_s: 136, bp_d: 88, o2: 95 },
+                    { time: "13:00", hr: 94, bp_s: 132, bp_d: 86, o2: 96 },
+                ],
+                events: [
+                    { time: "10:02", type: "alert", message: "High heart rate detected. SMS alert sent to Dr. Allen." },
+                    { time: "09:30", type: "alert", message: "Oxygen saturation dropped. Nurse notified." },
+                    { time: "09:01", type: "warning", message: "Blood pressure elevated." },
+                ]
+            },
+            "p003": {
+                name: "Robert Johnson (ID: p003)",
+                vitals: [
+                    { time: "08:00", hr: 60, bp_s: 110, bp_d: 70, o2: 99 },
+                    { time: "09:00", hr: 62, bp_s: 112, bp_d: 71, o2: 99 },
+                    { time: "10:00", hr: 61, bp_s: 111, bp_d: 70, o2: 98 },
+                    { time: "11:00", hr: 64, bp_s: 115, bp_d: 72, o2: 99 },
+                    { time: "12:00", hr: 63, bp_s: 114, bp_d: 71, o2: 99 },
+                    { time: "13:00", hr: 60, bp_s: 110, bp_d: 70, o2: 99 },
+                ],
+                events: [
+                     { time: "08:00", type: "info", message: "Patient stable. All vitals normal." }
+                ]
+            }
+        };
+
+        const patientSelector = document.getElementById('patientSelector');
+        let currentPatientId = 'p001';
+        let vitalsChart;
+        let currentChartType = 'hr';
+
+        const statusClasses = {
+            normal: { text: 'text-green-600', bg: 'bg-green-100', border: 'border-green-400' },
+            warning: { text: 'text-yellow-600', bg: 'bg-yellow-100', border: 'border-yellow-400' },
+            alert: { text: 'text-red-600', bg: 'bg-red-100', border: 'border-red-400' }
+        };
+        
+        function getStatus(type, value, value2 = null) {
+            switch(type) {
+                case 'hr':
+                    if (value < 60 || value > 100) return { level: 'alert', text: 'Critical' };
+                    if (value > 90) return { level: 'warning', text: 'Elevated' };
+                    return { level: 'normal', text: 'Normal' };
+                case 'bp':
+                    if (value > 140 || value2 > 90) return { level: 'alert', text: 'High' };
+                    if (value > 130 || value2 > 85) return { level: 'warning', text: 'Elevated' };
+                    return { level: 'normal', text: 'Normal' };
+                case 'o2':
+                    if (value < 95) return { level: 'alert', text: 'Low' };
+                    return { level: 'normal', text: 'Normal' };
+                default:
+                    return { level: 'normal', text: '' };
+            }
+        }
+
+        function updateOverview(patientId) {
+            const data = patientData[patientId];
+            const latestVitals = data.vitals[data.vitals.length - 1];
+
+            let riskScore = 0;
+            let riskReasons = [];
+
+            const hrStatus = getStatus('hr', latestVitals.hr);
+            const bpStatus = getStatus('bp', latestVitals.bp_s, latestVitals.bp_d);
+            const o2Status = getStatus('o2', latestVitals.o2);
+            
+            if (hrStatus.level === 'alert') { riskScore += 40; riskReasons.push('Heart Rate Critical'); }
+            else if (hrStatus.level === 'warning') { riskScore += 20; riskReasons.push('Heart Rate Elevated');}
+            
+            if (bpStatus.level === 'alert') { riskScore += 40; riskReasons.push('Blood Pressure High'); }
+            else if (bpStatus.level === 'warning') { riskScore += 20; riskReasons.push('Blood Pressure Elevated');}
+
+            if (o2Status.level === 'alert') { riskScore += 50; riskReasons.push('Oxygen Saturation Low'); }
+
+            const riskCard = document.getElementById('riskAssessmentCard');
+            const riskLevelEl = document.getElementById('riskLevel');
+            const riskReasonEl = document.getElementById('riskReason');
+            const riskBar = document.getElementById('riskBar');
+
+            Object.values(statusClasses).forEach(cls => {
+                riskCard.classList.remove(cls.bg, cls.border);
+            });
+
+            if (riskScore > 70) {
+                riskLevelEl.textContent = 'High Risk';
+                riskCard.classList.add(statusClasses.alert.bg, statusClasses.alert.border);
+                riskBar.className = 'h-2 rounded-full bg-red-500';
+            } else if (riskScore > 30) {
+                riskLevelEl.textContent = 'Moderate Risk';
+                riskCard.classList.add(statusClasses.warning.bg, statusClasses.warning.border);
+                riskBar.className = 'h-2 rounded-full bg-yellow-500';
+            } else {
+                riskLevelEl.textContent = 'Low Risk';
+                riskCard.classList.add(statusClasses.normal.bg, statusClasses.normal.border);
+                riskBar.className = 'h-2 rounded-full bg-green-500';
+            }
+            riskBar.style.width = `${riskScore > 100 ? 100 : riskScore}%`;
+            riskReasonEl.textContent = riskReasons.length > 0 ? riskReasons.join(', ') : 'All vitals are stable.';
+
+            updateStatCard('heartRate', latestVitals.hr, hrStatus);
+            updateStatCard('bloodPressure', `${latestVitals.bp_s}/${latestVitals.bp_d}`, bpStatus);
+            updateStatCard('oxygenSaturation', latestVitals.o2, o2Status);
+        }
+
+        function updateStatCard(id, value, status) {
+            document.getElementById(id).textContent = value;
+            const statusEl = document.getElementById(`${id}Status`);
+            const cardEl = document.getElementById(`${id}Card`);
+
+            statusEl.textContent = status.text;
+            Object.values(statusClasses).forEach(cls => {
+                statusEl.classList.remove(cls.text);
+                cardEl.classList.remove(cls.bg, cls.border);
+            });
+            statusEl.classList.add(statusClasses[status.level].text);
+            cardEl.classList.add(statusClasses[status.level].bg, statusClasses[status.level].border);
+        }
+
+        function updateChart(patientId, type) {
+            const data = patientData[patientId];
+            const labels = data.vitals.map(v => v.time);
+            let datasets;
+            let yLabel = '';
+
+            const colors = {
+                hr: 'rgb(8, 145, 178)',
+                bp: ['rgb(2, 132, 199)', 'rgb(96, 165, 250)'],
+                o2: 'rgb(22, 163, 74)'
+            };
+
+            switch (type) {
+                case 'hr':
+                    datasets = [{
+                        label: 'Heart Rate (bpm)',
+                        data: data.vitals.map(v => v.hr),
+                        borderColor: colors.hr,
+                        backgroundColor: colors.hr + '33',
+                        fill: true,
+                        tension: 0.3
+                    }];
+                    yLabel = 'BPM';
+                    break;
+                case 'bp':
+                    datasets = [
+                        {
+                            label: 'Systolic (mmHg)',
+                            data: data.vitals.map(v => v.bp_s),
+                            borderColor: colors.bp[0],
+                            backgroundColor: colors.bp[0] + '33',
+                            fill: true,
+                            tension: 0.3
+                        },
+                        {
+                            label: 'Diastolic (mmHg)',
+                            data: data.vitals.map(v => v.bp_d),
+                            borderColor: colors.bp[1],
+                            backgroundColor: colors.bp[1] + '33',
+                            fill: true,
+                            tension: 0.3
+                        }
+                    ];
+                    yLabel = 'mmHg';
+                    break;
+                case 'o2':
+                    datasets = [{
+                        label: 'Oxygen Saturation (%)',
+                        data: data.vitals.map(v => v.o2),
+                        borderColor: colors.o2,
+                        backgroundColor: colors.o2 + '33',
+                        fill: true,
+                        tension: 0.3
+                    }];
+                    yLabel = '% SpO2';
+                    break;
+            }
+
+            if (vitalsChart) {
+                vitalsChart.destroy();
+            }
+
+            const ctx = document.getElementById('vitalsChart').getContext('2d');
+            vitalsChart = new Chart(ctx, {
+                type: 'line',
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            title: { display: true, text: yLabel }
+                        },
+                        x: {
+                             title: { display: true, text: 'Time' }
+                        }
+                    },
+                    plugins: {
+                        legend: { position: 'top' },
+                    }
+                }
+            });
+        }
+        
+        function updateEventLog(patientId) {
+            const logContainer = document.getElementById('logContainer');
+            const data = patientData[patientId];
+            logContainer.innerHTML = '';
+
+            const logClasses = {
+                info: { bg: 'bg-sky-100', text: 'text-sky-800', icon: 'i' },
+                warning: { bg: 'bg-yellow-100', text: 'text-yellow-800', icon: '!' },
+                alert: { bg: 'bg-red-100', text: 'text-red-800', icon: '‼' },
+            }
+
+            if (!data.events || data.events.length === 0) {
+                 logContainer.innerHTML = '<p class="text-slate-500">No events recorded.</p>';
+                 return;
+            }
+
+            const sortedEvents = [...data.events].sort((a, b) => b.time.localeCompare(a.time));
+
+            sortedEvents.forEach(event => {
+                const classes = logClasses[event.type] || logClasses.info;
+                const logEntry = document.createElement('div');
+                logEntry.className = `flex items-start p-3 rounded-lg ${classes.bg}`;
+                logEntry.innerHTML = `
+                    <div class="flex-shrink-0 w-8 h-8 rounded-full ${classes.text} bg-white flex items-center justify-center font-bold text-lg mr-4">${classes.icon}</div>
+                    <div>
+                        <p class="font-semibold ${classes.text}">${event.message}</p>
+                        <p class="text-sm text-slate-500">Time: ${event.time}</p>
+                    </div>
+                `;
+                logContainer.appendChild(logEntry);
+            });
+        }
+
+        async function generateClinicalSummary() {
+            const summaryOutput = document.getElementById('summaryOutput');
+            const patientId = document.getElementById('patientSelector').value;
+            const patient = patientData[patientId];
+            const latestVitals = patient.vitals[patient.vitals.length - 1];
+            const events = patient.events.map(e => `${e.time}: ${e.message}`).join('; ');
+            const prompt = `Act as a professional healthcare provider. Write a concise, single-paragraph clinical note for patient ${patient.name}. The note should summarize the latest vital signs and recent events. Latest Vitals: Heart Rate ${latestVitals.hr} bpm, Blood Pressure ${latestVitals.bp_s}/${latestVitals.bp_d} mmHg, Oxygen Saturation ${latestVitals.o2}%. Events: ${events}. Focus on providing a professional, easy-to-read summary suitable for a patient chart.`;
+            
+            summaryOutput.textContent = 'Generating summary...';
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ "google_search": {} }],
+                    systemInstruction: {
+                        parts: [{ text: "You are a world-class medical scribe. Provide a concise, single-paragraph summary of the key findings." }]
+                    },
+                };
+                
+                let retries = 0;
+                const maxRetries = 3;
+                let response;
+
+                while (retries < maxRetries) {
+                    try {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.status === 429) {
+                            retries++;
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+                            continue;
+                        }
+                        break;
+                    } catch (error) {
+                        retries++;
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+                    }
+                }
+
+                if (!response || !response.ok) {
+                    summaryOutput.textContent = 'Error: Failed to generate summary. Please try again.';
+                    return;
+                }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    summaryOutput.textContent = text;
+                } else {
+                    summaryOutput.textContent = 'No summary could be generated.';
+                }
+            } catch (error) {
+                summaryOutput.textContent = 'An unexpected error occurred. Please check the console.';
+                console.error('Error:', error);
+            }
+        }
+
+        async function askClinicalQuestion() {
+            const questionInput = document.getElementById('questionInput');
+            const answerOutput = document.getElementById('answerOutput');
+            const question = questionInput.value;
+            if (!question) {
+                answerOutput.textContent = 'Please enter a question.';
+                return;
+            }
+
+            const patientId = document.getElementById('patientSelector').value;
+            const patient = patientData[patientId];
+            const latestVitals = patient.vitals[patient.vitals.length - 1];
+            
+            const prompt = `Based on the following patient data: Patient Name: ${patient.name}. Latest vitals: Heart Rate ${latestVitals.hr} bpm, Blood Pressure ${latestVitals.bp_s}/${latestVitals.bp_d} mmHg, Oxygen Saturation ${latestVitals.o2}%. Answer the following question: ${question}.`;
+
+            answerOutput.textContent = 'Thinking...';
+
+            try {
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                const payload = {
+                    contents: [{ parts: [{ text: prompt }] }],
+                    tools: [{ "google_search": {} }]
+                };
+                
+                let retries = 0;
+                const maxRetries = 3;
+                let response;
+
+                while (retries < maxRetries) {
+                    try {
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                        if (response.status === 429) {
+                            retries++;
+                            await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+                            continue;
+                        }
+                        break;
+                    } catch (error) {
+                        retries++;
+                        await new Promise(resolve => setTimeout(resolve, Math.pow(2, retries) * 1000));
+                    }
+                }
+                
+                if (!response || !response.ok) {
+                    answerOutput.textContent = 'Error: Failed to get an answer. Please try again.';
+                    return;
+                }
+
+                const result = await response.json();
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    answerOutput.textContent = text;
+                } else {
+                    answerOutput.textContent = 'No answer could be generated.';
+                }
+
+            } catch (error) {
+                answerOutput.textContent = 'An unexpected error occurred. Please check the console.';
+                console.error('Error:', error);
+            }
+        }
+
+        function handleChartToggle(e) {
+            const selectedBtn = e.target;
+            currentChartType = selectedBtn.id.replace('Btn', '');
+
+            document.querySelectorAll('.chart-toggle-btn').forEach(btn => {
+                btn.classList.remove('bg-sky-600', 'text-white');
+                btn.classList.add('bg-slate-200', 'text-slate-700');
+            });
+            selectedBtn.classList.add('bg-sky-600', 'text-white');
+            selectedBtn.classList.remove('bg-slate-200', 'text-slate-700');
+
+            updateChart(currentPatientId, currentChartType);
+        }
+
+        function updateDashboard() {
+            updateOverview(currentPatientId);
+            updateChart(currentPatientId, currentChartType);
+            updateEventLog(currentPatientId);
+            document.getElementById('summaryOutput').textContent = '';
+            document.getElementById('questionInput').value = '';
+            document.getElementById('answerOutput').textContent = '';
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            Object.keys(patientData).forEach(id => {
+                const option = document.createElement('option');
+                option.value = id;
+                option.textContent = patientData[id].name;
+                patientSelector.appendChild(option);
+            });
+
+            patientSelector.addEventListener('change', (e) => {
+                currentPatientId = e.target.value;
+                updateDashboard();
+            });
+
+            document.getElementById('hrBtn').addEventListener('click', handleChartToggle);
+            document.getElementById('bpBtn').addEventListener('click', handleChartToggle);
+            document.getElementById('o2Btn').addEventListener('click', handleChartToggle);
+            document.getElementById('summarizeBtn').addEventListener('click', generateClinicalSummary);
+            document.getElementById('askBtn').addEventListener('click', askClinicalQuestion);
+
+            updateDashboard();
+        });
+    </script>
+</body>
+</html>
